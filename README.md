@@ -25,5 +25,5 @@ http://localhost:8020
 
 ## Author
 
-* **Bruno Milani** - *Software Engineer* - [Email](bruno.milani@gmail.com)
+* **Bruno Milani** - *Software Engineer* - **bruno.milani@gmail.com**
 
