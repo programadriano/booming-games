@@ -1,0 +1,27 @@
+version: "2"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.6.9-management
+    ports:
+      - 15672:5672
+  ruby-invoices:
+    build: ./ruby-invoices
+    environment:
+      - RABBIT_HOST=rabbitmq
+    depends_on:
+      - rabbitmq
+  api:
+    links:
+      - rabbitmq
+    build: ./api
+    volumes:
+    - ./api:/go/src/github.com/brunomilani/booming-games/recruit-proxy/api
+    environment:
+      - RABBIT_HOST=rabbitmq
+    depends_on:
+      - rabbitmq
+    ports: 
+     - 8020:8020
+
+

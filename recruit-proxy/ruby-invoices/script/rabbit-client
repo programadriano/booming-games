@@ -1,0 +1,53 @@
+#!/usr/bin/env ruby
+require 'bundler'
+Bundler.require
+
+queue_name = ARGV.shift
+json_data = ARGV.shift
+
+json_data ||= "{}"
+
+fail "Usage: #$0 <queue-name> [<json-data>]" unless queue_name
+begin
+  JSON.parse(json_data)
+rescue
+  fail "Pass correct json as <json-data> attribute - was #{json_data}."
+end
+
+host = ENV["RABBIT_HOST"] || 'localhost'
+port = ENV["RABBIT_PORT"] || 5672
+user = ENV["RABBIT_USER"] || 'guest'
+password = ENV["RABBIT_PASSWORD"] || 'guest'
+
+connection = Bunny.new("amqp://#{user}:#{password}@#{host}:#{port}")
+connection.start
+
+channel   = connection.create_channel
+x = channel.default_exchange
+
+reply_queue = channel.queue("", :exclusive => true)
+
+lock = Mutex.new
+condition = ConditionVariable.new
+response = nil
+
+call_id = "#{rand}#{rand}#{rand}"
+
+reply_queue.subscribe do |delivery_info, properties, payload|
+  if properties[:correlation_id] == call_id
+    response = payload
+    lock.synchronize{condition.signal}
+  end
+end
+
+x.publish(json_data,
+  routing_key: queue_name,
+  correlation_id: call_id,
+  reply_to: reply_queue.name)
+
+lock.synchronize{condition.wait(lock)}
+
+puts response
+
+channel.close
+connection.close
